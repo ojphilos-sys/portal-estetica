@@ -621,7 +621,7 @@ export default function Home() {
                   )}
                 </div>
 
-                <form onSubmit={handleCadastrarLocacao} className="space-y-4">
+             <form onSubmit={handleCadastrarLocacao} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Cliente / Clínica</label>
@@ -643,7 +643,6 @@ export default function Home() {
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Valor Atual (R$)</label><input type="number" step="0.01" value={valorAtual} onChange={(e) => setValorAtual(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Próxima Locação</label><input type="date" value={proximaLocacao} onChange={(e) => setProximaLocacao(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
                     
-                    {/* NOVO: Tempo / Horas de Locação */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tempo / Horas de Locação</label>
                       <input 
@@ -673,7 +672,6 @@ export default function Home() {
                       </>
                     )}
 
-                    {/* NOVO: Observação livre */}
                     <div className="md:col-span-3">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Observação (Acessórios, horários ou detalhes operacionais)</label>
                       <textarea 
@@ -691,7 +689,7 @@ export default function Home() {
                       <h3 className="text-sm font-bold text-amber-800">🚗 Custo Operacional Viagem Externa ({clienteSelecionado?.cidade})</h3>
                       <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                         <div>
-                          <label className="text-xs">Combustível</label>
+                          <label className="text-xs font-semibold">Combustível</label>
                           <select value={tipoCombustivel} onChange={(e) => setTipoCombustivel(e.target.value)} className="w-full border p-1.5 text-sm bg-white">
                             <option value="Gasolina">Gasolina</option>
                             <option value="Álcool">Álcool</option>
@@ -702,7 +700,7 @@ export default function Home() {
                         <div><label className="text-xs">Pedágio</label><input type="number" step="0.01" value={valorPedagio} onChange={(e) => setValorPedagio(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Refeição</label><input type="number" step="0.01" value={valorRefeicao} onChange={(e) => setValorRefeicao(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Hospedagem</label><input type="number" step="0.01" value={valorHospedagem} onChange={(e) => setValorHospedagem(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
-                        <div className="md:col-span-6 flex flex-col justify-end bg-amber-100 p-2 rounded">
+                        <div className="md:col-span-6 flex flex-col justify-end bg-amber-100 p-2 rounded mt-2">
                           <span className="text-xs font-bold text-amber-900">Total Operacional calculado (gerará Saída automática): {formatarMoeda(custoTotalOperacional)}</span>
                         </div>
                       </div>
@@ -713,7 +711,6 @@ export default function Home() {
                     {editandoLocId ? 'Atualizar Locação' : 'Agendar Locação (Pagamento Pendente)'}
                   </button>
                 </form>
-              </div>
 
               <div className="space-y-6">
                 <div className="no-print bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 mb-4">
