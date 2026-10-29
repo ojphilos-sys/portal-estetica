@@ -333,16 +333,7 @@ export default function Home() {
     } else {
       const { error } = await supabase.from('locacoes').insert([dadosLocacaoPayload])
       if (!error) {
-        if (isForaDeMaringa && custoTotalOperacional > 0) {
-          await supabase.from('financeiro').insert([{
-            tipo: 'Saida',
-            categoria: 'Custo Viagem / Operacional',
-            descricao: `Custos viagem (KM/Pedágio/Hospedagem) - Cliente ID ${cliLocacaoId}`,
-            valor: custoTotalOperacional,
-            data_transacao: dataLocacao
-          }])
-        }
-        alert('Locação registrada com sucesso!')
+        alert('Locação agendada com sucesso! Os custos operacionais serão lançados no Financeiro apenas na Confirmação de Pagamento.')
         limparFormularioLocacao()
         buscarLocacoes()
         buscarFinanceiro()
@@ -382,7 +373,7 @@ export default function Home() {
   }
 
   async function handleConfirmarPagamento(locacao: any) {
-    if (!confirm('Confirmar o recebimento desta locação e gerar lançamento no financeiro?')) return
+    if (!confirm('Confirmar o recebimento desta locação e gerar lançamentos no financeiro?')) return
 
     const { error: erroUpdate } = await supabase
       .from('locacoes')
@@ -401,12 +392,23 @@ export default function Home() {
         data_transacao: new Date().toISOString().split('T')[0] 
       }])
 
+      if (locacao.custo_total_operacional && locacao.custo_total_operacional > 0) {
+        await supabase.from('financeiro').insert([{
+          tipo: 'Saida',
+          categoria: 'Custo Viagem / Operacional',
+          descricao: `Custos viagem (KM/Pedágio/Hospedagem) - ${nomeCli}`,
+          valor: locacao.custo_total_operacional,
+          data_transacao: new Date().toISOString().split('T')[0]
+        }])
+      }
+
       buscarLocacoes()
       buscarFinanceiro()
     } else {
       alert('Erro ao confirmar pagamento: ' + erroUpdate.message)
     }
   }
+
   async function handleExcluirLocacao(id: any) {
     if (!confirm('Deseja excluir?')) return
     await supabase.from('locacoes').delete().eq('id', id)
@@ -691,6 +693,7 @@ export default function Home() {
                         className="w-full border rounded-md p-2 text-sm" 
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
                       <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
