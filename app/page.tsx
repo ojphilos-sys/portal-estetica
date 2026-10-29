@@ -70,8 +70,9 @@ export default function Home() {
   const [filtroLocEq, setFiltroLocEq] = useState('')
   const [filtroLocCli, setFiltroLocCli] = useState('')
 
-  // Filtro da Agenda Diária
-  const [dataAgenda, setDataAgenda] = useState(new Date().toISOString().split('T')[0])
+ // Filtro da Agenda por Período
+  const [agendaDataInicio, setAgendaDataInicio] = useState(new Date().toISOString().split('T')[0])
+  const [agendaDataFim, setAgendaDataFim] = useState(new Date().toISOString().split('T')[0])
 
   const CEP_ORIGEM_FIXO = '87083-685'
 
