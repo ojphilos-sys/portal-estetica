@@ -297,7 +297,8 @@ export default function Home() {
       valor_pedagio: isForaDeMaringa && valorPedagio ? parseFloat(valorPedagio) : null,
       valor_refeicao: isForaDeMaringa && valorRefeicao ? parseFloat(valorRefeicao) : null,
       valor_hospedagem: isForaDeMaringa && valorHospedagem ? parseFloat(valorHospedagem) : null,
-      custo_total_operacional: isForaDeMaringa ? custoTotalOperacional : null
+      custo_total_operacional: isForaDeMaringa ? custoTotalOperacional : null,
+      status_pagamento: 'Pendente' // Adicionado status pendente na criação
     }])
 
     if (!error) {
@@ -318,6 +319,34 @@ export default function Home() {
       alert('Erro ao registrar: ' + error.message)
     }
     setSalvandoLoc(false)
+  }
+
+  // NOVA FUNÇÃO: Confirma o pagamento e lança a entrada no financeiro
+  async function handleConfirmarPagamento(locacao: any) {
+    if (!confirm('Confirmar o recebimento desta locação e gerar lançamento no financeiro?')) return
+
+    const { error: erroUpdate } = await supabase
+      .from('locacoes')
+      .update({ status_pagamento: 'Pago' })
+      .eq('id', locacao.id)
+
+    if (!erroUpdate) {
+      const clienteDaLoc = clientes.find(c => String(c.id).trim() === String(locacao.cliente_id).trim())
+      const nomeCli = clienteDaLoc ? clienteDaLoc.nome_clinica : `ID ${locacao.cliente_id}`
+
+      await supabase.from('financeiro').insert([{
+        tipo: 'Entrada',
+        categoria: 'Locação de Equipamento',
+        descricao: `Recebimento Locação - ${nomeCli} (${locacao.forma_pagamento})`,
+        valor: locacao.valor_atual,
+        data_transacao: new Date().toISOString().split('T')[0] // Registra na data atual do recebimento
+      }])
+
+      buscarLocacoes()
+      buscarFinanceiro()
+    } else {
+      alert('Erro ao confirmar pagamento: ' + erroUpdate.message)
+    }
   }
 
   async function handleExcluirLocacao(id: any) {
@@ -361,6 +390,7 @@ export default function Home() {
   })
 
   const totalTransacoesEntrada = transacoesFiltradas.filter(t => t.tipo === 'Entrada').reduce((acc, t) => acc + Number(t.valor), 0)
+  
   const locacoesFiltradas = locacoes.filter(l => {
     if (!dataInicioRel && !dataFimRel) return true
     const dataLoc = l.data_locacao
@@ -368,8 +398,14 @@ export default function Home() {
     if (dataFimRel && dataLoc > dataFimRel) return false
     return true
   })
-  const totalLocacoesCadastradas = locacoesFiltradas.reduce((acc, l) => acc + Number(l.valor_atual || 0), 0)
-  const totalEntradas = totalLocacoesCadastradas + totalTransacoesEntrada
+
+  // Evita duplicar receita das locações novas com o que já foi gerado na tabela Financeiro.
+  // Soma apenas as locações que são antigas (que não possuem o campo status_pagamento)
+  const totalLocacoesAntigas = locacoesFiltradas
+    .filter(l => !l.status_pagamento)
+    .reduce((acc, l) => acc + Number(l.valor_atual || 0), 0)
+  
+  const totalEntradas = totalLocacoesAntigas + totalTransacoesEntrada
 
   const totalSaidas = transacoesFiltradas.filter(t => t.tipo === 'Saida').reduce((acc, t) => acc + Number(t.valor), 0)
   const saldoLiquido = totalEntradas - totalSaidas
@@ -409,7 +445,7 @@ export default function Home() {
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Cabeçalho refinado: Logo menor e alinhada horizontalmente com o título */}
+        {/* Cabeçalho refinado */}
         <div className="no-print bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img 
@@ -583,7 +619,9 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  <button type="submit" disabled={salvandoLoc} className="w-full bg-indigo-600 text-white font-semibold py-2 px-8 rounded-md text-sm">Registrar Locação (Já soma nas Receitas)</button>
+                  <button type="submit" disabled={salvandoLoc} className="w-full bg-indigo-600 text-white font-semibold py-2 px-8 rounded-md text-sm">
+                    Agendar Locação (Pagamento Pendente)
+                  </button>
                 </form>
               </div>
 
@@ -618,9 +656,23 @@ export default function Home() {
                                 <p className="text-xs text-gray-600">Contato: <span className="font-medium text-gray-800">{loc.clientes?.nome_contato || '-'}</span></p>
                                 <p className="text-xs text-indigo-600 font-medium">Cidade: {loc.clientes?.cidade || '-'}</p>
                               </div>
-                              <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-1 rounded font-semibold">
-                                Pagto: {loc.forma_pagamento}
-                              </span>
+                              <div className="flex flex-col items-end gap-2">
+                                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-1 rounded font-semibold">
+                                  Pagto: {loc.forma_pagamento}
+                                </span>
+                                {loc.status_pagamento === 'Pago' ? (
+                                  <span className="bg-green-100 text-green-800 border border-green-200 text-xs px-2.5 py-1 rounded font-semibold">
+                                    ✅ Pago
+                                  </span>
+                                ) : (
+                                  <button 
+                                    onClick={() => handleConfirmarPagamento(loc)}
+                                    className="no-print bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow-sm text-xs font-bold transition"
+                                  >
+                                    💰 Confirmar Pagamento
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-3 rounded-md text-xs">
