@@ -705,6 +705,37 @@ export default function Home() {
               </div>
 
               <div className="space-y-6">
+                <div className="no-print bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 mb-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">Data Início</label>
+                    <input type="date" value={filtroLocDataInicio} onChange={(e) => setFiltroLocDataInicio(e.target.value)} className="w-full border rounded p-2 text-sm bg-white" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">Data Fim</label>
+                    <input type="date" value={filtroLocDataFim} onChange={(e) => setFiltroLocDataFim(e.target.value)} className="w-full border rounded p-2 text-sm bg-white" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">Filtrar Equipamento</label>
+                    <select value={filtroLocEq} onChange={(e) => setFiltroLocEq(e.target.value)} className="w-full border rounded p-2 text-sm bg-white">
+                      <option value="">Todos os Equipamentos</option>
+                      {equipamentos.map(eq => <option key={eq.id} value={eq.id}>{eq.nome}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1">Filtrar Clínica / Cliente</label>
+                    <select value={filtroLocCli} onChange={(e) => setFiltroLocCli(e.target.value)} className="w-full border rounded p-2 text-sm bg-white">
+                      <option value="">Todas as Clínicas</option>
+                      {clientes.map(c => <option key={c.id} value={c.id}>{c.nome_clinica}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-end">
+                    {(filtroLocDataInicio || filtroLocDataFim || filtroLocEq || filtroLocCli) && (
+                      <button onClick={() => { setFiltroLocDataInicio(''); setFiltroLocDataFim(''); setFiltroLocEq(''); setFiltroLocCli('') }} className="text-xs text-red-600 underline font-semibold p-2 mb-1 hover:text-red-800">
+                        Limpar Filtros
+                      </button>
+                    )}
+                  </div>
+                </div>
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-800">Relatório de Locações por Equipamento</h2>
                   <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
