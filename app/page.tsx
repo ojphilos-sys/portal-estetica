@@ -27,7 +27,7 @@ export default function Home() {
 
   const [locacoes, setLocacoes] = useState<any[]>([])
   const [loadingLoc, setLoadingLoc] = useState(true)
-  const [editandoLocId, setEditandoLocId] = useState<any>(null) // NOVO
+  const [editandoLocId, setEditandoLocId] = useState<any>(null)
   const [eqLocacaoId, setEqLocacaoId] = useState('')
   const [cliLocacaoId, setCliLocacaoId] = useState('')
   const [dataLocacao, setDataLocacao] = useState('')
@@ -40,8 +40,8 @@ export default function Home() {
   const [valorPagamento1, setValorPagamento1] = useState('')
   const [valorPagamento2, setValorPagamento2] = useState('')
   
-  const [observacaoLoc, setObservacaoLoc] = useState('') // NOVO
-  const [tempoLocacao, setTempoLocacao] = useState('') // NOVO
+  const [observacaoLoc, setObservacaoLoc] = useState('')
+  const [tempoLocacao, setTempoLocacao] = useState('')
 
   const [kmRodados, setKmRodados] = useState('')
   const [tipoCombustivel, setTipoCombustivel] = useState('Gasolina')
@@ -63,6 +63,8 @@ export default function Home() {
 
   const [dataInicioRel, setDataInicioRel] = useState('')
   const [dataFimRel, setDataFimRel] = useState('')
+
+  // Filtros Avançados de Locações
   const [filtroLocDataInicio, setFiltroLocDataInicio] = useState('')
   const [filtroLocDataFim, setFiltroLocDataFim] = useState('')
   const [filtroLocEq, setFiltroLocEq] = useState('')
@@ -265,12 +267,12 @@ export default function Home() {
 
   const kmNum = parseFloat(kmRodados) || 0
   const precoCombNum = parseFloat(precoCombustivel) || 0
-  const kmNum = parseFloat(kmRodados) || 0
-  const precoCombNum = parseFloat(precoCombustivel) || 0
-  const rendimento = tipoCombustivel === 'Álcool' ? 8.0 : 11.0 // Ajustado para a média da Fiorino 1.4
+  
+  // Cálculo ajustado para Fiorino 1.4
+  const rendimento = tipoCombustivel === 'Álcool' ? 8.0 : 11.0 
   const custoCombustivelCalculado = (kmNum / rendimento) * precoCombNum
   const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
-  const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
+
   async function handleCadastrarLocacao(e: React.FormEvent) {
     e.preventDefault()
     if (!eqLocacaoId || !cliLocacaoId || !dataLocacao || !valorAtual || !formaPagamento) return alert('Preencha os campos obrigatórios.')
@@ -301,8 +303,8 @@ export default function Home() {
       valor_atual: valorLocacaoNum,
       proxima_locacao: proximaLocacao || null,
       forma_pagamento: textoPagamentoFinal,
-      observacao: observacaoLoc || null, // NOVO
-      tempo_locacao: tempoLocacao || null, // NOVO
+      observacao: observacaoLoc || null,
+      tempo_locacao: tempoLocacao || null,
       km_rodados: isForaDeMaringa && kmRodados ? kmNum : null,
       tipo_combustivel: isForaDeMaringa ? tipoCombustivel : null,
       preco_combustivel: isForaDeMaringa && precoCombustivel ? precoCombNum : null,
@@ -352,7 +354,6 @@ export default function Home() {
     setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem(''); setTipoCombustivel('Gasolina')
   }
 
-  // NOVA FUNÇÃO: Editar Locação (Agora puxa a viagem corretamente!)
   function handleEditarLocacao(loc: any) {
     setEditandoLocId(loc.id)
     setEqLocacaoId(loc.equipamento_id || '')
@@ -366,7 +367,6 @@ export default function Home() {
     setObservacaoLoc(loc.observacao || '')
     setTempoLocacao(loc.tempo_locacao || '')
     
-    // --- CAMPOS DE VIAGEM QUE FALTAVAM PUXAR ---
     setKmRodados(loc.km_rodados ? String(loc.km_rodados) : '')
     setTipoCombustivel(loc.tipo_combustivel || 'Gasolina')
     setPrecoCombustivel(loc.preco_combustivel ? String(loc.preco_combustivel) : '')
@@ -374,22 +374,6 @@ export default function Home() {
     setValorRefeicao(loc.valor_refeicao ? String(loc.valor_refeicao) : '')
     setValorHospedagem(loc.valor_hospedagem ? String(loc.valor_hospedagem) : '')
     
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // NOVA FUNÇÃO: Editar Locação
-  function handleEditarLocacao(loc: any) {
-    setEditandoLocId(loc.id)
-    setEqLocacaoId(loc.equipamento_id || '')
-    setCliLocacaoId(loc.cliente_id || '')
-    setDataLocacao(loc.data_locacao || '')
-    setUltimaDataLocada(loc.ultima_data_locada || '')
-    setValorUltimaLocacao(loc.valor_ultima_locacao ? String(loc.valor_ultima_locacao) : '')
-    setValorAtual(loc.valor_atual ? String(loc.valor_atual) : '')
-    setProximaLocacao(loc.proxima_locacao || '')
-    setFormaPagamento(loc.forma_pagamento || 'Pix')
-    setObservacaoLoc(loc.observacao || '')
-    setTempoLocacao(loc.tempo_locacao || '')
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
@@ -462,7 +446,7 @@ export default function Home() {
 
   const totalTransacoesEntrada = transacoesFiltradas.filter(t => t.tipo === 'Entrada').reduce((acc, t) => acc + Number(t.valor), 0)
   
-  const locacoesFiltradas = locacoes.filter(l => {
+  const locacoesFiltradasFinanceiro = locacoes.filter(l => {
     if (!dataInicioRel && !dataFimRel) return true
     const dataLoc = l.data_locacao
     if (dataInicioRel && dataLoc < dataInicioRel) return false
@@ -470,7 +454,7 @@ export default function Home() {
     return true
   })
 
-  const totalLocacoesAntigas = locacoesFiltradas
+  const totalLocacoesAntigas = locacoesFiltradasFinanceiro
     .filter(l => !l.status_pagamento)
     .reduce((acc, l) => acc + Number(l.valor_atual || 0), 0)
   
@@ -496,24 +480,37 @@ export default function Home() {
   const isPagamentoDuplo = formaPagamento.includes('+')
   const partesFormaPag = formaPagamento.split(' + ')
 
-  const locacoesPorEquipamento = equipamentos.map(eq => {
-    const listaDaEq = locacoesFiltradas.filter(l => String(l.equipamento_id).trim() === String(eq.id).trim())
-    return {
-      equipamento: eq,
-      locacoes: listaDaEq.map(loc => {
-        const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
-        return {
-          ...loc,
-          clientes: cli || { nome_clinica: 'Clínica não encontrada', nome_contato: '', cidade: '' }
-        }
-      })
-    }
+  // Aplicação dos Filtros Avançados
+  const locacoesExibicao = locacoes.filter(l => {
+    let passou = true
+    if (filtroLocDataInicio && l.data_locacao < filtroLocDataInicio) passou = false
+    if (filtroLocDataFim && l.data_locacao > filtroLocDataFim) passou = false
+    if (filtroLocEq && String(l.equipamento_id) !== String(filtroLocEq)) passou = false
+    if (filtroLocCli && String(l.cliente_id) !== String(filtroLocCli)) passou = false
+    return passou
   })
+
+  const locacoesPorEquipamento = equipamentos
+    .filter(eq => filtroLocEq ? String(eq.id) === String(filtroLocEq) : true)
+    .map(eq => {
+      const listaDaEq = locacoesExibicao.filter(l => String(l.equipamento_id).trim() === String(eq.id).trim())
+      return {
+        equipamento: eq,
+        locacoes: listaDaEq.map(loc => {
+          const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
+          return {
+            ...loc,
+            clientes: cli || { nome_clinica: 'Clínica não encontrada', nome_contato: '', cidade: '' }
+          }
+        })
+      }
+    })
+    .filter(grupo => grupo.locacoes.length > 0 || (!filtroLocCli && !filtroLocEq && !filtroLocDataInicio && !filtroLocDataFim))
+
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Cabeçalho refinado */}
         <div className="no-print bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <img 
@@ -646,7 +643,7 @@ export default function Home() {
                   )}
                 </div>
 
-             <form onSubmit={handleCadastrarLocacao} className="space-y-4">
+                <form onSubmit={handleCadastrarLocacao} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Cliente / Clínica</label>
@@ -714,7 +711,7 @@ export default function Home() {
                       <h3 className="text-sm font-bold text-amber-800">🚗 Custo Operacional Viagem Externa ({clienteSelecionado?.cidade})</h3>
                       <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                         <div>
-                          <label className="text-xs font-semibold">Combustível</label>
+                          <label className="text-xs font-semibold text-gray-700">Combustível</label>
                           <select value={tipoCombustivel} onChange={(e) => setTipoCombustivel(e.target.value)} className="w-full border p-1.5 text-sm bg-white">
                             <option value="Gasolina">Gasolina</option>
                             <option value="Álcool">Álcool</option>
@@ -736,8 +733,10 @@ export default function Home() {
                     {editandoLocId ? 'Atualizar Locação' : 'Agendar Locação (Pagamento Pendente)'}
                   </button>
                 </form>
+              </div>
 
               <div className="space-y-6">
+                
                 <div className="no-print bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 mb-4">
                   <div className="flex-1">
                     <label className="block text-xs font-semibold text-indigo-900 mb-1">Data Início</label>
@@ -769,6 +768,7 @@ export default function Home() {
                     )}
                   </div>
                 </div>
+
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-800">Relatório de Locações por Equipamento</h2>
                   <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
@@ -788,7 +788,7 @@ export default function Home() {
                     </div>
 
                     {grupo.locacoes.length === 0 ? (
-                      <p className="text-sm text-gray-500 italic py-2">Nenhuma locação registrada para este equipamento.</p>
+                      <p className="text-sm text-gray-500 italic py-2">Nenhuma locação registrada para este equipamento neste período.</p>
                     ) : (
                       <div className="space-y-4">
                         {grupo.locacoes.map((loc) => (
@@ -823,7 +823,6 @@ export default function Home() {
                                 <span className="text-gray-500 block">Data Locação:</span>
                                 <strong className="text-gray-800 text-sm">{loc.data_locacao ? new Date(loc.data_locacao + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</strong>
                               </div>
-                              {/* NOVO: Exibição do Tempo */}
                               <div>
                                 <span className="text-gray-500 block">Tempo / Horas:</span>
                                 <strong className="text-gray-800 text-sm">{loc.tempo_locacao || '-'}</strong>
@@ -838,7 +837,6 @@ export default function Home() {
                               </div>
                             </div>
 
-                            {/* NOVO: Exibição da Observação */}
                             {loc.observacao && (
                               <div className="bg-blue-50 border border-blue-200 p-2.5 rounded text-xs text-blue-900">
                                 <span className="font-bold">📝 Observação:</span> {loc.observacao}
@@ -872,7 +870,6 @@ export default function Home() {
                               </div>
                               
                               <div className="no-print flex gap-2">
-                                {/* NOVO: Botão Editar */}
                                 <button
                                   onClick={() => handleEditarLocacao(loc)}
                                   className="text-amber-700 border border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded font-semibold transition"
