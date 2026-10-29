@@ -27,6 +27,7 @@ export default function Home() {
 
   const [locacoes, setLocacoes] = useState<any[]>([])
   const [loadingLoc, setLoadingLoc] = useState(true)
+  const [editandoLocId, setEditandoLocId] = useState<any>(null) // NOVO
   const [eqLocacaoId, setEqLocacaoId] = useState('')
   const [cliLocacaoId, setCliLocacaoId] = useState('')
   const [dataLocacao, setDataLocacao] = useState('')
@@ -39,6 +40,9 @@ export default function Home() {
   const [valorPagamento1, setValorPagamento1] = useState('')
   const [valorPagamento2, setValorPagamento2] = useState('')
   
+  const [observacaoLoc, setObservacaoLoc] = useState('') // NOVO
+  const [tempoLocacao, setTempoLocacao] = useState('') // NOVO
+
   const [kmRodados, setKmRodados] = useState('')
   const [tipoCombustivel, setTipoCombustivel] = useState('Gasolina')
   const [precoCombustivel, setPrecoCombustivel] = useState('')
@@ -259,7 +263,6 @@ export default function Home() {
   const precoCombNum = parseFloat(precoCombustivel) || 0
   const custoCombustivelCalculado = (kmNum / 10) * precoCombNum
   const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
-
   async function handleCadastrarLocacao(e: React.FormEvent) {
     e.preventDefault()
     if (!eqLocacaoId || !cliLocacaoId || !dataLocacao || !valorAtual || !formaPagamento) return alert('Preencha os campos obrigatórios.')
@@ -280,7 +283,7 @@ export default function Home() {
     setSalvandoLoc(true)
     const valorLocacaoNum = parseFloat(valorAtual)
 
-    const { error } = await supabase.from('locacoes').insert([{
+    const dadosLocacaoPayload = {
       equipamento_id: eqLocacaoId,
       cliente_id: cliLocacaoId,
       data_locacao: dataLocacao,
@@ -290,6 +293,8 @@ export default function Home() {
       valor_atual: valorLocacaoNum,
       proxima_locacao: proximaLocacao || null,
       forma_pagamento: textoPagamentoFinal,
+      observacao: observacaoLoc || null, // NOVO
+      tempo_locacao: tempoLocacao || null, // NOVO
       km_rodados: isForaDeMaringa && kmRodados ? kmNum : null,
       tipo_combustivel: isForaDeMaringa ? tipoCombustivel : null,
       preco_combustivel: isForaDeMaringa && precoCombustivel ? precoCombNum : null,
@@ -298,30 +303,63 @@ export default function Home() {
       valor_refeicao: isForaDeMaringa && valorRefeicao ? parseFloat(valorRefeicao) : null,
       valor_hospedagem: isForaDeMaringa && valorHospedagem ? parseFloat(valorHospedagem) : null,
       custo_total_operacional: isForaDeMaringa ? custoTotalOperacional : null,
-      status_pagamento: 'Pendente' // Adicionado status pendente na criação
-    }])
+      status_pagamento: editandoLocId ? undefined : 'Pendente'
+    }
 
-    if (!error) {
-      if (isForaDeMaringa && custoTotalOperacional > 0) {
-        await supabase.from('financeiro').insert([{
-          tipo: 'Saida',
-          categoria: 'Custo Viagem / Operacional',
-          descricao: `Custos viagem (KM/Pedágio/Hospedagem) - Cliente ID ${cliLocacaoId}`,
-          valor: custoTotalOperacional,
-          data_transacao: dataLocacao
-        }])
+    if (editandoLocId) {
+      const { error } = await supabase.from('locacoes').update(dadosLocacaoPayload).eq('id', editandoLocId)
+      if (error) {
+        alert('Erro ao atualizar locação: ' + error.message)
+      } else {
+        alert('Locação atualizada com sucesso!')
+        limparFormularioLocacao()
+        buscarLocacoes()
+        buscarFinanceiro()
       }
-
-      setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem('')
-      buscarLocacoes()
-      buscarFinanceiro()
     } else {
-      alert('Erro ao registrar: ' + error.message)
+      const { error } = await supabase.from('locacoes').insert([dadosLocacaoPayload])
+      if (!error) {
+        if (isForaDeMaringa && custoTotalOperacional > 0) {
+          await supabase.from('financeiro').insert([{
+            tipo: 'Saida',
+            categoria: 'Custo Viagem / Operacional',
+            descricao: `Custos viagem (KM/Pedágio/Hospedagem) - Cliente ID ${cliLocacaoId}`,
+            valor: custoTotalOperacional,
+            data_transacao: dataLocacao
+          }])
+        }
+        alert('Locação registrada com sucesso!')
+        limparFormularioLocacao()
+        buscarLocacoes()
+        buscarFinanceiro()
+      } else {
+        alert('Erro ao registrar: ' + error.message)
+      }
     }
     setSalvandoLoc(false)
   }
 
-  // NOVA FUNÇÃO: Confirma o pagamento e lança a entrada no financeiro
+  function limparFormularioLocacao() {
+    setEditandoLocId(null)
+    setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem('')
+  }
+
+  // NOVA FUNÇÃO: Editar Locação
+  function handleEditarLocacao(loc: any) {
+    setEditandoLocId(loc.id)
+    setEqLocacaoId(loc.equipamento_id || '')
+    setCliLocacaoId(loc.cliente_id || '')
+    setDataLocacao(loc.data_locacao || '')
+    setUltimaDataLocada(loc.ultima_data_locada || '')
+    setValorUltimaLocacao(loc.valor_ultima_locacao ? String(loc.valor_ultima_locacao) : '')
+    setValorAtual(loc.valor_atual ? String(loc.valor_atual) : '')
+    setProximaLocacao(loc.proxima_locacao || '')
+    setFormaPagamento(loc.forma_pagamento || 'Pix')
+    setObservacaoLoc(loc.observacao || '')
+    setTempoLocacao(loc.tempo_locacao || '')
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   async function handleConfirmarPagamento(locacao: any) {
     if (!confirm('Confirmar o recebimento desta locação e gerar lançamento no financeiro?')) return
 
@@ -339,7 +377,7 @@ export default function Home() {
         categoria: 'Locação de Equipamento',
         descricao: `Recebimento Locação - ${nomeCli} (${locacao.forma_pagamento})`,
         valor: locacao.valor_atual,
-        data_transacao: new Date().toISOString().split('T')[0] // Registra na data atual do recebimento
+        data_transacao: new Date().toISOString().split('T')[0] 
       }])
 
       buscarLocacoes()
@@ -399,8 +437,6 @@ export default function Home() {
     return true
   })
 
-  // Evita duplicar receita das locações novas com o que já foi gerado na tabela Financeiro.
-  // Soma apenas as locações que são antigas (que não possuem o campo status_pagamento)
   const totalLocacoesAntigas = locacoesFiltradas
     .filter(l => !l.status_pagamento)
     .reduce((acc, l) => acc + Number(l.valor_atual || 0), 0)
@@ -440,7 +476,6 @@ export default function Home() {
       })
     }
   })
-
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -548,7 +583,7 @@ export default function Home() {
                       <div>
                         <h3 className="font-bold text-indigo-600">{cli.nome_clinica} ({cli.codigo})</h3>
                         <p className="text-xs text-gray-600">Contato: <strong>{cli.nome_contato || 'N/D'}</strong> | Tel: <strong>{cli.telefone || 'N/D'}</strong></p>
-                        <p className="text-xs text-gray-500 mt-1">{cli.rua}, {cli.numero} - {cli.bairro} - {cli.cidade}</p>
+                        <p className="text-xs text-gray-500 mt-1">{cli.rua}, {cli.numero} - {cli.bairro} | {cli.cidade}</p>
                       </div>
                       <div className="no-print flex gap-2">
                         <button onClick={() => handleEditarCliente(cli)} className="text-xs text-indigo-600 border border-indigo-200 px-2 py-1 rounded h-fit">Editar</button>
@@ -564,7 +599,20 @@ export default function Home() {
           {abaAtiva === 'locacoes' && (
             <div className="space-y-6">
               <div className="no-print bg-white shadow rounded-lg p-6 border border-gray-100">
-                <h2 className="text-xl font-semibold mb-4 text-gray-700">Nova Locação / Agendamento</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-700">
+                    {editandoLocId ? `Editando Locação #${editandoLocId}` : 'Nova Locação / Agendamento'}
+                  </h2>
+                  {editandoLocId && (
+                    <button 
+                      onClick={limparFormularioLocacao}
+                      className="text-xs bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1 rounded font-bold hover:bg-rose-200"
+                    >
+                      Cancelar Edição
+                    </button>
+                  )}
+                </div>
+
                 <form onSubmit={handleCadastrarLocacao} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
@@ -586,6 +634,19 @@ export default function Home() {
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Valor Última Locação (R$)</label><input type="number" value={valorUltimaLocacao} disabled className="w-full border rounded-md p-2 text-sm bg-gray-50" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Valor Atual (R$)</label><input type="number" step="0.01" value={valorAtual} onChange={(e) => setValorAtual(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
                     <div><label className="block text-sm font-medium text-gray-700 mb-1">Próxima Locação</label><input type="date" value={proximaLocacao} onChange={(e) => setProximaLocacao(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
+                    
+                    {/* NOVO: Tempo / Horas de Locação */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tempo / Horas de Locação</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: 8 horas, 50 disparos..." 
+                        value={tempoLocacao} 
+                        onChange={(e) => setTempoLocacao(e.target.value)} 
+                        className="w-full border rounded-md p-2 text-sm" 
+                      />
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
                       <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
@@ -596,12 +657,25 @@ export default function Home() {
                         <option value="Pix + Débito">Pix + Débito</option>
                       </select>
                     </div>
+
                     {isPagamentoDuplo && (
                       <>
                         <div><label className="block text-xs font-semibold text-indigo-900 mb-1">Valor em {partesFormaPag[0]}</label><input type="number" step="0.01" value={valorPagamento1} onChange={(e) => setValorPagamento1(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
                         <div><label className="block text-xs font-semibold text-indigo-900 mb-1">Valor em {partesFormaPag[1]}</label><input type="number" step="0.01" value={valorPagamento2} onChange={(e) => setValorPagamento2(e.target.value)} className="w-full border rounded-md p-2 text-sm" /></div>
                       </>
                     )}
+
+                    {/* NOVO: Observação livre */}
+                    <div className="md:col-span-3">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Observação (Acessórios, horários ou detalhes operacionais)</label>
+                      <textarea 
+                        rows={2} 
+                        placeholder="Insira observações relevantes sobre esta locação..." 
+                        value={observacaoLoc} 
+                        onChange={(e) => setObservacaoLoc(e.target.value)} 
+                        className="w-full border rounded-md p-2 text-sm" 
+                      />
+                    </div>
                   </div>
 
                   {isForaDeMaringa && (
@@ -619,8 +693,9 @@ export default function Home() {
                       </div>
                     </div>
                   )}
-                  <button type="submit" disabled={salvandoLoc} className="w-full bg-indigo-600 text-white font-semibold py-2 px-8 rounded-md text-sm">
-                    Agendar Locação (Pagamento Pendente)
+
+                  <button type="submit" disabled={salvandoLoc} className={`w-full text-white font-semibold py-2 px-8 rounded-md text-sm ${editandoLocId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                    {editandoLocId ? 'Atualizar Locação' : 'Agendar Locação (Pagamento Pendente)'}
                   </button>
                 </form>
               </div>
@@ -680,6 +755,11 @@ export default function Home() {
                                 <span className="text-gray-500 block">Data Locação:</span>
                                 <strong className="text-gray-800 text-sm">{loc.data_locacao ? new Date(loc.data_locacao + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</strong>
                               </div>
+                              {/* NOVO: Exibição do Tempo */}
+                              <div>
+                                <span className="text-gray-500 block">Tempo / Horas:</span>
+                                <strong className="text-gray-800 text-sm">{loc.tempo_locacao || '-'}</strong>
+                              </div>
                               <div>
                                 <span className="text-gray-500 block">Valor Atual:</span>
                                 <strong className="text-indigo-700 text-sm">{formatarMoeda(loc.valor_atual)}</strong>
@@ -688,24 +768,19 @@ export default function Home() {
                                 <span className="text-gray-500 block">Última Locação:</span>
                                 <strong className="text-gray-800 text-sm">{loc.ultima_data_locada ? new Date(loc.ultima_data_locada + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</strong>
                               </div>
-                              <div>
-                                <span className="text-gray-500 block">Valor Anterior:</span>
-                                <strong className="text-gray-800 text-sm">{loc.valor_ultima_locacao ? formatarMoeda(loc.valor_ultima_locacao) : '-'}</strong>
-                              </div>
                             </div>
+
+                            {/* NOVO: Exibição da Observação */}
+                            {loc.observacao && (
+                              <div className="bg-blue-50 border border-blue-200 p-2.5 rounded text-xs text-blue-900">
+                                <span className="font-bold">📝 Observação:</span> {loc.observacao}
+                              </div>
+                            )}
 
                             {loc.custo_total_operacional && loc.custo_total_operacional > 0 ? (
                               <div className="bg-amber-50 border border-amber-200 p-3 rounded text-xs text-amber-900 space-y-1">
                                 <p className="font-bold flex items-center gap-1">
                                   📊 Custo Operacional Viagem: {formatarMoeda(loc.custo_total_operacional)}
-                                </p>
-                                <p className="text-amber-800">
-                                  {loc.km_rodados ? `${loc.km_rodados}km` : ''} 
-                                  {loc.tipo_combustivel ? ` (${loc.tipo_combustivel})` : ''} 
-                                  {loc.custo_combustivel ? ` | Combustível: ${formatarMoeda(loc.custo_combustivel)}` : ''}
-                                  {loc.valor_pedagio ? ` | Pedágio: ${formatarMoeda(loc.valor_pedagio)}` : ''}
-                                  {loc.valor_refeicao ? ` | Refeição: ${formatarMoeda(loc.valor_refeicao)}` : ''}
-                                  {loc.valor_hospedagem ? ` | Hospedagem: ${formatarMoeda(loc.valor_hospedagem)}` : ''}
                                 </p>
                               </div>
                             ) : null}
@@ -719,12 +794,22 @@ export default function Home() {
                                   <p className="flex items-center gap-1">📅 Próxima Locação Agendada: <strong className="text-indigo-700">{new Date(loc.proxima_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></p>
                                 )}
                               </div>
-                              <button
-                                onClick={() => handleExcluirLocacao(loc.id)}
-                                className="no-print text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded font-semibold transition"
-                              >
-                                Excluir Registro
-                              </button>
+                              
+                              <div className="no-print flex gap-2">
+                                {/* NOVO: Botão Editar */}
+                                <button
+                                  onClick={() => handleEditarLocacao(loc)}
+                                  className="text-amber-700 border border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded font-semibold transition"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => handleExcluirLocacao(loc.id)}
+                                  className="text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded font-semibold transition"
+                                >
+                                  Excluir Registro
+                                </button>
+                              </div>
                             </div>
                           </div>
                         ))}
