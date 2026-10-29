@@ -265,7 +265,11 @@ export default function Home() {
 
   const kmNum = parseFloat(kmRodados) || 0
   const precoCombNum = parseFloat(precoCombustivel) || 0
-  const custoCombustivelCalculado = (kmNum / 10) * precoCombNum
+  const kmNum = parseFloat(kmRodados) || 0
+  const precoCombNum = parseFloat(precoCombustivel) || 0
+  const rendimento = tipoCombustivel === 'Álcool' ? 8.0 : 11.0 // Ajustado para a média da Fiorino 1.4
+  const custoCombustivelCalculado = (kmNum / rendimento) * precoCombNum
+  const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
   const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
   async function handleCadastrarLocacao(e: React.FormEvent) {
     e.preventDefault()
@@ -685,17 +689,23 @@ export default function Home() {
                   {isForaDeMaringa && (
                     <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
                       <h3 className="text-sm font-bold text-amber-800">🚗 Custo Operacional Viagem Externa ({clienteSelecionado?.cidade})</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+                        <div>
+                          <label className="text-xs">Combustível</label>
+                          <select value={tipoCombustivel} onChange={(e) => setTipoCombustivel(e.target.value)} className="w-full border p-1.5 text-sm bg-white">
+                            <option value="Gasolina">Gasolina</option>
+                            <option value="Álcool">Álcool</option>
+                          </select>
+                        </div>
                         <div><label className="text-xs">KM Rodados</label><input type="number" value={kmRodados} onChange={(e) => setKmRodados(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Preço Litro</label><input type="number" step="0.01" value={precoCombustivel} onChange={(e) => setPrecoCombustivel(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Pedágio</label><input type="number" step="0.01" value={valorPedagio} onChange={(e) => setValorPedagio(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Refeição</label><input type="number" step="0.01" value={valorRefeicao} onChange={(e) => setValorRefeicao(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
                         <div><label className="text-xs">Hospedagem</label><input type="number" step="0.01" value={valorHospedagem} onChange={(e) => setValorHospedagem(e.target.value)} className="w-full border p-1.5 text-sm bg-white" /></div>
-                        <div className="md:col-span-3 flex flex-col justify-end bg-amber-100 p-2 rounded">
+                        <div className="md:col-span-6 flex flex-col justify-end bg-amber-100 p-2 rounded">
                           <span className="text-xs font-bold text-amber-900">Total Operacional calculado (gerará Saída automática): {formatarMoeda(custoTotalOperacional)}</span>
                         </div>
                       </div>
-                    </div>
                   )}
 
                   <button type="submit" disabled={salvandoLoc} className={`w-full text-white font-semibold py-2 px-8 rounded-md text-sm ${editandoLocId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
