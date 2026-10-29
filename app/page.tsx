@@ -817,6 +817,14 @@ export default function Home() {
                                 <p className="font-bold flex items-center gap-1">
                                   📊 Custo Operacional Viagem: {formatarMoeda(loc.custo_total_operacional)}
                                 </p>
+                                <p className="text-amber-800 mt-1">
+                                  {loc.km_rodados ? `${loc.km_rodados}km` : ''} 
+                                  {loc.tipo_combustivel ? ` (${loc.tipo_combustivel})` : ''} 
+                                  {loc.custo_combustivel ? ` | Combustível: ${formatarMoeda(loc.custo_combustivel)}` : ''}
+                                  {loc.valor_pedagio ? ` | Pedágio: ${formatarMoeda(loc.valor_pedagio)}` : ''}
+                                  {loc.valor_refeicao ? ` | Refeição: ${formatarMoeda(loc.valor_refeicao)}` : ''}
+                                  {loc.valor_hospedagem ? ` | Hospedagem: ${formatarMoeda(loc.valor_hospedagem)}` : ''}
+                                </p>
                               </div>
                             ) : null}
 
