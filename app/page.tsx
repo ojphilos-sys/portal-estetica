@@ -63,6 +63,10 @@ export default function Home() {
 
   const [dataInicioRel, setDataInicioRel] = useState('')
   const [dataFimRel, setDataFimRel] = useState('')
+  const [filtroLocDataInicio, setFiltroLocDataInicio] = useState('')
+  const [filtroLocDataFim, setFiltroLocDataFim] = useState('')
+  const [filtroLocEq, setFiltroLocEq] = useState('')
+  const [filtroLocCli, setFiltroLocCli] = useState('')
 
   const CEP_ORIGEM_FIXO = '87083-685'
 
