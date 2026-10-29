@@ -70,7 +70,7 @@ export default function Home() {
   const [filtroLocEq, setFiltroLocEq] = useState('')
   const [filtroLocCli, setFiltroLocCli] = useState('')
 
-  // Filtro da Agenda por Período
+ // Filtro da Agenda por Período
   const [agendaDataInicio, setAgendaDataInicio] = useState(new Date().toISOString().split('T')[0])
   const [agendaDataFim, setAgendaDataFim] = useState(new Date().toISOString().split('T')[0])
 
@@ -264,7 +264,9 @@ export default function Home() {
     if (!confirm('Deseja excluir?')) return
     await supabase.from('equipamentos').delete().eq('id', id)
     buscarEquipamentos()
-  }const clienteSelecionado = clientes.find(c => String(c.id).trim() === String(cliLocacaoId).trim())
+  }
+
+  const clienteSelecionado = clientes.find(c => String(c.id).trim() === String(cliLocacaoId).trim())
   const isForaDeMaringa = clienteSelecionado && clienteSelecionado.cidade && !clienteSelecionado.cidade.toLowerCase().includes('maringá')
 
   const kmNum = parseFloat(kmRodados) || 0
@@ -354,9 +356,7 @@ export default function Home() {
   function limparFormularioLocacao() {
     setEditandoLocId(null)
     setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem(''); setTipoCombustivel('Gasolina')
-  }
-
-  function handleEditarLocacao(loc: any) {
+  }function handleEditarLocacao(loc: any) {
     setEditandoLocId(loc.id)
     setEqLocacaoId(loc.equipamento_id || '')
     setCliLocacaoId(loc.cliente_id || '')
@@ -518,7 +518,9 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => new Date(a.data_locacao).getTime() - new Date(b.data_locacao).getTime());
-    return (
+  const locacoesAgendaDia = locacoes.filter(l => l.data_locacao === dataAgenda)
+
+  return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
         
@@ -638,9 +640,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          )}
-
-          {abaAtiva === 'locacoes' && (
+          )}{abaAtiva === 'locacoes' && (
             <div className="space-y-6">
               <div className="no-print bg-white shadow rounded-lg p-6 border border-gray-100">
                 <div className="flex justify-between items-center mb-4">
@@ -883,4 +883,278 @@ export default function Home() {
                                 )}
                               </div>
                               
-                              <div
+                              <div className="no-print flex gap-2">
+                                <button
+                                  onClick={() => handleEditarLocacao(loc)}
+                                  className="text-amber-700 border border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded font-semibold transition"
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  onClick={() => handleExcluirLocacao(loc.id)}
+                                  className="text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded font-semibold transition"
+                                >
+                                  Excluir Registro
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        {abaAtiva === 'agenda' && (
+            <div className="space-y-6">
+              <div className="bg-white shadow rounded-lg p-6 border border-gray-100 space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">📅 Agenda de Equipamentos (Por Período)</h2>
+                    <p className="text-xs text-gray-500">Consulte os agendamentos de equipamentos e clínicas no período selecionado</p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Início:</label>
+                      <input 
+                        type="date" 
+                        value={agendaDataInicio} 
+                        onChange={(e) => setAgendaDataInicio(e.target.value)} 
+                        className="border rounded-md p-2 text-sm bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim:</label>
+                      <input 
+                        type="date" 
+                        value={agendaDataFim} 
+                        onChange={(e) => setAgendaDataFim(e.target.value)} 
+                        className="border rounded-md p-2 text-sm bg-white" 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {locacoesAgendaPeriodo.length === 0 ? (
+                    <div className="p-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                      <p className="text-sm text-gray-500 font-medium">Nenhum equipamento agendado para o período selecionado.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {locacoesAgendaPeriodo.map((loc) => {
+                        const eq = equipamentos.find(e => String(e.id).trim() === String(loc.equipamento_id).trim())
+                        const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
+                        
+                        return (
+                          <div key={loc.id} className="border border-indigo-100 bg-indigo-50/40 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm hover:shadow transition">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                                  {new Date(loc.data_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                </span>
+                                <h3 className="font-bold text-base text-gray-900">
+                                  ⚡ {eq ? `${eq.nome} (${eq.marca})` : 'Equipamento não encontrado'}
+                                </h3>
+                              </div>
+                              <p className="text-sm font-semibold text-indigo-900 ml-1">
+                                🏥 Clínica: {cli ? cli.nome_clinica : 'Clínica não encontrada'} 
+                                <span className="text-xs font-normal text-gray-600 ml-2">({cli?.cidade || 'Localização não informada'})</span>
+                              </p>
+                              {loc.tempo_locacao && (
+                                <p className="text-xs text-gray-600 ml-1">⏱️ Período/Horas: <strong>{loc.tempo_locacao}</strong></p>
+                              )}
+                              {loc.observacao && (
+                                <p className="text-xs text-blue-800 ml-1 bg-blue-50 p-1.5 rounded border border-blue-100">📝 Obs: {loc.observacao}</p>
+                              )}
+                            </div>
+
+                            <div className="flex flex-col items-end gap-2">
+                              <span className={`text-xs px-3 py-1.5 rounded-md font-semibold ${loc.status_pagamento === 'Pago' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                                {loc.status_pagamento === 'Pago' ? '✅ Pago' : '⏳ Pagamento Pendente'}
+                              </span>
+                              <span className="text-[10px] text-gray-400 font-medium">Agendamento #{loc.id}</span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {abaAtiva === 'financeiro' && (
+            <div className="space-y-6">
+              <div className="no-print bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-indigo-900">📅 Filtrar Relatório por Período:</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Data Início</label>
+                    <input type="date" value={dataInicioRel} onChange={(e) => setDataInicioRel(e.target.value)} className="border rounded p-1.5 text-sm bg-white" />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Data Fim</label>
+                    <input type="date" value={dataFimRel} onChange={(e) => setDataFimRel(e.target.value)} className="border rounded p-1.5 text-sm bg-white" />
+                  </div>
+                  {(dataInicioRel || dataFimRel) && (
+                    <button onClick={() => { setDataInicioRel(''); setDataFimRel('') }} className="mt-5 text-xs text-red-600 underline font-semibold">
+                      Limpar Filtro
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">Relatório Consolidado do Financeiro</h2>
+                <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
+                  🖨️ Imprimir Relatório Financeiro Completo
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-green-50 border border-green-200 p-5 rounded-lg shadow-sm">
+                  <p className="text-xs font-semibold text-green-700 uppercase">Total Entradas (Receitas)</p>
+                  <p className="text-2xl font-bold text-green-800 mt-1">{formatarMoeda(totalEntradas)}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 p-5 rounded-lg shadow-sm">
+                  <p className="text-xs font-semibold text-red-700 uppercase">Total Saídas (Despesas)</p>
+                  <p className="text-2xl font-bold text-red-800 mt-1">{formatarMoeda(totalSaidas)}</p>
+                </div>
+                <div className={`p-5 rounded-lg shadow-sm border ${saldoLiquido >= 0 ? 'bg-indigo-50 border-indigo-200 text-indigo-900' : 'bg-orange-50 border-orange-200 text-orange-900'}`}>
+                  <p className="text-xs font-semibold uppercase opacity-80">Saldo Líquido do Período</p>
+                  <p className="text-2xl font-bold mt-1">{formatarMoeda(saldoLiquido)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📈 Relatório de Saídas por Categoria</h3>
+                  {Object.keys(resumoSaidasPorCategoria).length === 0 ? (
+                    <p className="text-xs text-gray-500 italic">Nenhuma saída registrada no período.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.entries(resumoSaidasPorCategoria).map(([cat, val]: [string, any]) => (
+                        <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
+                          <span className="text-gray-700 font-medium">{cat}</span>
+                          <strong className="text-red-600">{formatarMoeda(val)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
+                  <h3 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📊 Relatório de Entradas por Categoria</h3>
+                  {Object.keys(resumoEntradasPorCategoria).length === 0 ? (
+                    <p className="text-xs text-gray-500 italic">Nenhuma entrada manual registrada no período.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.entries(resumoEntradasPorCategoria).map(([cat, val]: [string, any]) => (
+                        <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
+                          <span className="text-gray-700 font-medium">{cat}</span>
+                          <strong className="text-green-600">{formatarMoeda(val)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="no-print bg-white shadow rounded-lg p-6 border border-gray-100 space-y-4">
+                <h2 className="text-xl font-semibold text-gray-700">Novo Lançamento Financeiro (Manual)</h2>
+                <form onSubmit={handleSalvarFinanceiro} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de Transação</label>
+                      <select value={tipoTransacao} onChange={(e) => setTipoTransacao(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
+                        <option value="Entrada">Entrada (Crédito Manual)</option>
+                        <option value="Saida">Saída (Débito / Despesa)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Categoria</label>
+                      <select value={categoriaFin} onChange={(e) => setCategoriaFin(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
+                        <option value="Outros">Outros</option>
+                        <option value="Manutenção">Manutenção de Equipamento</option>
+                        <option value="Custo Viagem / Operacional">Custo Viagem / Operacional</option>
+                        <option value="Marketing">Marketing</option>
+                        <option value="Combustível">Combustível</option>
+                        <option value="Alimentação">Alimentação</option>
+                        <option value="Retirada Pró-Labore">Retirada Pró-Labore</option>
+                        <option value="Retirada Pró-Labore Osvino">Retirada Pró-Labore Osvino</option>
+                        <option value="Aluguel">Aluguel</option>
+                        <option value="Prestação Equipamento">Prestação Equipamento</option>
+                        <option value="Fundo de Reserva">Fundo de Reserva</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Data</label>
+                      <input type="date" value={dataFin} onChange={(e) => setDataFin(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white" />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
+                      <input type="text" placeholder="Ex: Pagamento referente ao aluguel do mês" value={descricaoFin} onChange={(e) => setDescricaoFin(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
+                      <input type="number" step="0.01" placeholder="Ex: 150.00" value={valorFin} onChange={(e) => setValorFin(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white" />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={salvandoFin} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-md text-sm">Adicionar Lançamento Manual</button>
+                </form>
+              </div>
+
+              <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
+                <h2 className="text-xl font-semibold mb-4 text-gray-700">Extrato de Transações (Filtrado)</h2>
+                {loadingFin ? <p>Carregando...</p> : transacoesFiltradas.length === 0 ? <p className="text-gray-500">Nenhum lançamento financeiro encontrado no período.</p> : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50 text-gray-600">
+                          <th className="p-3">Data</th>
+                          <th className="p-3">Tipo</th>
+                          <th className="p-3">Categoria</th>
+                          <th className="p-3">Descrição</th>
+                          <th className="p-3">Valor</th>
+                          <th className="no-print p-3 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transacoesFiltradas.map((t) => (
+                          <tr key={t.id} className="border-b hover:bg-gray-50">
+                            <td className="p-3">{new Date(t.data_transacao + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${t.tipo === 'Entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {t.tipo}
+                              </span>
+                            </td>
+                            <td className="p-3">{t.categoria}</td>
+                            <td className="p-3 font-medium text-gray-800">{t.descricao}</td>
+                            <td className={`p-3 font-bold ${t.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}`}>
+                              {t.tipo === 'Entrada' ? '+' : '-'} {formatarMoeda(t.valor)}
+                            </td>
+                            <td className="no-print p-3 text-right">
+                              <button onClick={() => handleExcluirTransacao(t.id)} className="text-xs text-red-600 border border-red-200 px-2 py-1 rounded">Excluir</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </main>
+  )
+}
