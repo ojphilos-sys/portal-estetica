@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export default function Home() {
-  const [abaAtiva, setAbaAtiva] = useState<'equipamentos' | 'clientes' | 'locacoes' | 'financeiro'>('locacoes')
+  const [abaAtiva, setAbaAtiva] = useState<'equipamentos' | 'clientes' | 'locacoes' | 'financeiro' | 'agenda'>('locacoes')
 
   const [equipamentos, setEquipamentos] = useState<any[]>([])
   const [loadingEq, setLoadingEq] = useState(true)
@@ -69,6 +69,9 @@ export default function Home() {
   const [filtroLocDataFim, setFiltroLocDataFim] = useState('')
   const [filtroLocEq, setFiltroLocEq] = useState('')
   const [filtroLocCli, setFiltroLocCli] = useState('')
+
+  // Filtro da Agenda Diária
+  const [dataAgenda, setDataAgenda] = useState(new Date().toISOString().split('T')[0])
 
   const CEP_ORIGEM_FIXO = '87083-685'
 
@@ -352,9 +355,7 @@ export default function Home() {
   function limparFormularioLocacao() {
     setEditandoLocId(null)
     setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem(''); setTipoCombustivel('Gasolina')
-  }
-
-  function handleEditarLocacao(loc: any) {
+  }function handleEditarLocacao(loc: any) {
     setEditandoLocId(loc.id)
     setEqLocacaoId(loc.equipamento_id || '')
     setCliLocacaoId(loc.cliente_id || '')
@@ -507,6 +508,9 @@ export default function Home() {
     })
     .filter(grupo => grupo.locacoes.length > 0 || (!filtroLocCli && !filtroLocEq && !filtroLocDataInicio && !filtroLocDataFim))
 
+  // Filtro específico para a Agenda Diária
+  const locacoesAgendaDia = locacoes.filter(l => l.data_locacao === dataAgenda)
+
   return (
     <main className="min-h-screen p-8 bg-gray-50">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -540,6 +544,9 @@ export default function Home() {
           </button>
           <button onClick={() => setAbaAtiva('locacoes')} className={`py-2 px-6 font-semibold text-sm border-b-2 whitespace-nowrap ${abaAtiva === 'locacoes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'}`}>
             Controle de Locações ({locacoes.length})
+          </button>
+          <button onClick={() => setAbaAtiva('agenda')} className={`py-2 px-6 font-semibold text-sm border-b-2 whitespace-nowrap ${abaAtiva === 'agenda' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'}`}>
+            📅 Agenda Diária
           </button>
           <button onClick={() => setAbaAtiva('financeiro')} className={`py-2 px-6 font-semibold text-sm border-b-2 whitespace-nowrap ${abaAtiva === 'financeiro' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500'}`}>
             💰 Financeiro & Relatórios
@@ -624,9 +631,7 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          )}
-
-          {abaAtiva === 'locacoes' && (
+          )}{abaAtiva === 'locacoes' && (
             <div className="space-y-6">
               <div className="no-print bg-white shadow rounded-lg p-6 border border-gray-100">
                 <div className="flex justify-between items-center mb-4">
@@ -890,6 +895,74 @@ export default function Home() {
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {abaAtiva === 'agenda' && (
+            <div className="space-y-6">
+              <div className="bg-white shadow rounded-lg p-6 border border-gray-100 space-y-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-800">📅 Agenda Diária de Equipamentos</h2>
+                    <p className="text-xs text-gray-500">Consulte os agendamentos de equipamentos e clínicas por dia</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm font-medium text-gray-700">Selecionar Data:</label>
+                    <input 
+                      type="date" 
+                      value={dataAgenda} 
+                      onChange={(e) => setDataAgenda(e.target.value)} 
+                      className="border rounded-md p-2 text-sm bg-white" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {locacoesAgendaDia.length === 0 ? (
+                    <div className="p-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                      <p className="text-sm text-gray-500 font-medium">Nenhum equipamento agendado para o dia {new Date(dataAgenda + 'T00:00:00').toLocaleDateString('pt-BR')}.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                      {locacoesAgendaDia.map((loc) => {
+                        const eq = equipamentos.find(e => String(e.id).trim() === String(loc.equipamento_id).trim())
+                        const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
+                        
+                        return (
+                          <div key={loc.id} className="border border-indigo-100 bg-indigo-50/40 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+                                  {new Date(loc.data_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}
+                                </span>
+                                <h3 className="font-bold text-base text-gray-900">
+                                  ⚡ {eq ? `${eq.nome} (${eq.marca})` : 'Equipamento não encontrado'}
+                                </h3>
+                              </div>
+                              <p className="text-sm font-semibold text-indigo-900 ml-1">
+                                🏥 Clínica: {cli ? cli.nome_clinica : 'Clínica não encontrada'} 
+                                <span className="text-xs font-normal text-gray-600 ml-2">({cli?.cidade || 'Localização não informada'})</span>
+                              </p>
+                              {loc.tempo_locacao && (
+                                <p className="text-xs text-gray-600 ml-1">⏱️ Período/Horas: <strong>{loc.tempo_locacao}</strong></p>
+                              )}
+                              {loc.observacao && (
+                                <p className="text-xs text-blue-800 ml-1 bg-blue-50 p-1.5 rounded border border-blue-100">📝 Obs: {loc.observacao}</p>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs px-3 py-1.5 rounded-md font-semibold ${loc.status_pagamento === 'Pago' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
+                                {loc.status_pagamento === 'Pago' ? '✅ Pago' : '⏳ Pagamento Pendente'}
+                              </span>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
