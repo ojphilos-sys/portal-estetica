@@ -349,7 +349,32 @@ export default function Home() {
 
   function limparFormularioLocacao() {
     setEditandoLocId(null)
-    setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem('')
+    setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem(''); setTipoCombustivel('Gasolina')
+  }
+
+  // NOVA FUNÇÃO: Editar Locação (Agora puxa a viagem corretamente!)
+  function handleEditarLocacao(loc: any) {
+    setEditandoLocId(loc.id)
+    setEqLocacaoId(loc.equipamento_id || '')
+    setCliLocacaoId(loc.cliente_id || '')
+    setDataLocacao(loc.data_locacao || '')
+    setUltimaDataLocada(loc.ultima_data_locada || '')
+    setValorUltimaLocacao(loc.valor_ultima_locacao ? String(loc.valor_ultima_locacao) : '')
+    setValorAtual(loc.valor_atual ? String(loc.valor_atual) : '')
+    setProximaLocacao(loc.proxima_locacao || '')
+    setFormaPagamento(loc.forma_pagamento || 'Pix')
+    setObservacaoLoc(loc.observacao || '')
+    setTempoLocacao(loc.tempo_locacao || '')
+    
+    // --- CAMPOS DE VIAGEM QUE FALTAVAM PUXAR ---
+    setKmRodados(loc.km_rodados ? String(loc.km_rodados) : '')
+    setTipoCombustivel(loc.tipo_combustivel || 'Gasolina')
+    setPrecoCombustivel(loc.preco_combustivel ? String(loc.preco_combustivel) : '')
+    setValorPedagio(loc.valor_pedagio ? String(loc.valor_pedagio) : '')
+    setValorRefeicao(loc.valor_refeicao ? String(loc.valor_refeicao) : '')
+    setValorHospedagem(loc.valor_hospedagem ? String(loc.valor_hospedagem) : '')
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // NOVA FUNÇÃO: Editar Locação
