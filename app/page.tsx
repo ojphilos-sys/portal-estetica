@@ -509,7 +509,15 @@ export default function Home() {
     })
     .filter(grupo => grupo.locacoes.length > 0 || (!filtroLocCli && !filtroLocEq && !filtroLocDataInicio && !filtroLocDataFim))
 
-  // Filtro específico para a Agenda Diária
+  // Filtro específico para a Agenda por Período (ordenado por data)
+  const locacoesAgendaPeriodo = locacoes
+    .filter(l => {
+      if (!agendaDataInicio && !agendaDataFim) return true;
+      if (agendaDataInicio && l.data_locacao < agendaDataInicio) return false;
+      if (agendaDataFim && l.data_locacao > agendaDataFim) return false;
+      return true;
+    })
+    .sort((a, b) => new Date(a.data_locacao).getTime() - new Date(b.data_locacao).getTime());
   const locacoesAgendaDia = locacoes.filter(l => l.data_locacao === dataAgenda)
 
   return (
@@ -900,38 +908,49 @@ export default function Home() {
             </div>
           )}
 
-          {abaAtiva === 'agenda' && (
+        {abaAtiva === 'agenda' && (
             <div className="space-y-6">
               <div className="bg-white shadow rounded-lg p-6 border border-gray-100 space-y-4">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
                   <div>
-                    <h2 className="text-xl font-bold text-gray-800">📅 Agenda Diária de Equipamentos</h2>
-                    <p className="text-xs text-gray-500">Consulte os agendamentos de equipamentos e clínicas por dia</p>
+                    <h2 className="text-xl font-bold text-gray-800">📅 Agenda de Equipamentos (Por Período)</h2>
+                    <p className="text-xs text-gray-500">Consulte os agendamentos de equipamentos e clínicas no período selecionado</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium text-gray-700">Selecionar Data:</label>
-                    <input 
-                      type="date" 
-                      value={dataAgenda} 
-                      onChange={(e) => setDataAgenda(e.target.value)} 
-                      className="border rounded-md p-2 text-sm bg-white" 
-                    />
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Início:</label>
+                      <input 
+                        type="date" 
+                        value={agendaDataInicio} 
+                        onChange={(e) => setAgendaDataInicio(e.target.value)} 
+                        className="border rounded-md p-2 text-sm bg-white" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim:</label>
+                      <input 
+                        type="date" 
+                        value={agendaDataFim} 
+                        onChange={(e) => setAgendaDataFim(e.target.value)} 
+                        className="border rounded-md p-2 text-sm bg-white" 
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  {locacoesAgendaDia.length === 0 ? (
+                  {locacoesAgendaPeriodo.length === 0 ? (
                     <div className="p-8 text-center bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                      <p className="text-sm text-gray-500 font-medium">Nenhum equipamento agendado para o dia {new Date(dataAgenda + 'T00:00:00').toLocaleDateString('pt-BR')}.</p>
+                      <p className="text-sm text-gray-500 font-medium">Nenhum equipamento agendado para o período selecionado.</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
-                      {locacoesAgendaDia.map((loc) => {
+                      {locacoesAgendaPeriodo.map((loc) => {
                         const eq = equipamentos.find(e => String(e.id).trim() === String(loc.equipamento_id).trim())
                         const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
                         
                         return (
-                          <div key={loc.id} className="border border-indigo-100 bg-indigo-50/40 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+                          <div key={loc.id} className="border border-indigo-100 bg-indigo-50/40 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm hover:shadow transition">
                             <div className="space-y-1.5">
                               <div className="flex items-center gap-2">
                                 <span className="bg-indigo-600 text-white text-xs px-2.5 py-1 rounded-full font-bold">
@@ -953,10 +972,11 @@ export default function Home() {
                               )}
                             </div>
 
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col items-end gap-2">
                               <span className={`text-xs px-3 py-1.5 rounded-md font-semibold ${loc.status_pagamento === 'Pago' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
                                 {loc.status_pagamento === 'Pago' ? '✅ Pago' : '⏳ Pagamento Pendente'}
                               </span>
+                              <span className="text-[10px] text-gray-400 font-medium">Agendamento #{loc.id}</span>
                             </div>
                           </div>
                         )
