@@ -706,6 +706,7 @@ export default function Home() {
                           <span className="text-xs font-bold text-amber-900">Total Operacional calculado (gerará Saída automática): {formatarMoeda(custoTotalOperacional)}</span>
                         </div>
                       </div>
+                    </div>
                   )}
 
                   <button type="submit" disabled={salvandoLoc} className={`w-full text-white font-semibold py-2 px-8 rounded-md text-sm ${editandoLocId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
