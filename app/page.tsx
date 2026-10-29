@@ -70,7 +70,7 @@ export default function Home() {
   const [filtroLocEq, setFiltroLocEq] = useState('')
   const [filtroLocCli, setFiltroLocCli] = useState('')
 
- // Filtro da Agenda por Período
+  // Filtro da Agenda por Período
   const [agendaDataInicio, setAgendaDataInicio] = useState(new Date().toISOString().split('T')[0])
   const [agendaDataFim, setAgendaDataFim] = useState(new Date().toISOString().split('T')[0])
 
@@ -356,7 +356,9 @@ export default function Home() {
   function limparFormularioLocacao() {
     setEditandoLocId(null)
     setEqLocacaoId(''); setCliLocacaoId(''); setDataLocacao(''); setUltimaDataLocada(''); setValorUltimaLocacao(''); setValorAtual(''); setProximaLocacao(''); setFormaPagamento('Pix'); setValorPagamento1(''); setValorPagamento2(''); setObservacaoLoc(''); setTempoLocacao(''); setKmRodados(''); setPrecoCombustivel(''); setValorPedagio(''); setValorRefeicao(''); setValorHospedagem(''); setTipoCombustivel('Gasolina')
-  }function handleEditarLocacao(loc: any) {
+  }
+
+  function handleEditarLocacao(loc: any) {
     setEditandoLocId(loc.id)
     setEqLocacaoId(loc.equipamento_id || '')
     setCliLocacaoId(loc.cliente_id || '')
@@ -405,7 +407,6 @@ export default function Home() {
       alert('Erro ao confirmar pagamento: ' + erroUpdate.message)
     }
   }
-
   async function handleExcluirLocacao(id: any) {
     if (!confirm('Deseja excluir?')) return
     await supabase.from('locacoes').delete().eq('id', id)
@@ -518,7 +519,6 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => new Date(a.data_locacao).getTime() - new Date(b.data_locacao).getTime());
-  const locacoesAgendaDia = locacoes.filter(l => l.data_locacao === dataAgenda)
 
   return (
     <main className="min-h-screen p-8 bg-gray-50">
@@ -640,7 +640,9 @@ export default function Home() {
                 </div>
               </div>
             </div>
-          )}{abaAtiva === 'locacoes' && (
+          )}
+
+          {abaAtiva === 'locacoes' && (
             <div className="space-y-6">
               <div className="no-print bg-white shadow rounded-lg p-6 border border-gray-100">
                 <div className="flex justify-between items-center mb-4">
@@ -689,7 +691,6 @@ export default function Home() {
                         className="w-full border rounded-md p-2 text-sm" 
                       />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
                       <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
@@ -908,7 +909,7 @@ export default function Home() {
             </div>
           )}
 
-        {abaAtiva === 'agenda' && (
+          {abaAtiva === 'agenda' && (
             <div className="space-y-6">
               <div className="bg-white shadow rounded-lg p-6 border border-gray-100 space-y-4">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 border-b pb-4">
