@@ -64,15 +64,17 @@ export default function Home() {
   const [dataInicioRel, setDataInicioRel] = useState('')
   const [dataFimRel, setDataFimRel] = useState('')
 
-  // Filtros Avançados de Locações
+  // Filtros Avançados de Locações e Agenda
   const [filtroLocDataInicio, setFiltroLocDataInicio] = useState('')
   const [filtroLocDataFim, setFiltroLocDataFim] = useState('')
   const [filtroLocEq, setFiltroLocEq] = useState('')
   const [filtroLocCli, setFiltroLocCli] = useState('')
 
-  // Filtro da Agenda por Período
   const [agendaDataInicio, setAgendaDataInicio] = useState(new Date().toISOString().split('T')[0])
   const [agendaDataFim, setAgendaDataFim] = useState(new Date().toISOString().split('T')[0])
+
+  // ESTADO DA ORDEM DE SERVIÇO
+  const [ordemServico, setOrdemServico] = useState<any>(null)
 
   const CEP_ORIGEM_FIXO = '87083-685'
 
@@ -265,14 +267,12 @@ export default function Home() {
     await supabase.from('equipamentos').delete().eq('id', id)
     buscarEquipamentos()
   }
-
   const clienteSelecionado = clientes.find(c => String(c.id).trim() === String(cliLocacaoId).trim())
   const isForaDeMaringa = clienteSelecionado && clienteSelecionado.cidade && !clienteSelecionado.cidade.toLowerCase().includes('maringá')
 
   const kmNum = parseFloat(kmRodados) || 0
   const precoCombNum = parseFloat(precoCombustivel) || 0
   
-  // Cálculo ajustado para Fiorino 1.4
   const rendimento = tipoCombustivel === 'Álcool' ? 8.0 : 11.0 
   const custoCombustivelCalculado = (kmNum / rendimento) * precoCombNum
   const custoTotalOperacional = isForaDeMaringa ? (custoCombustivelCalculado + (parseFloat(valorPedagio) || 0) + (parseFloat(valorRefeicao) || 0) + (parseFloat(valorHospedagem) || 0)) : 0
@@ -464,28 +464,22 @@ export default function Home() {
     .reduce((acc, l) => acc + Number(l.valor_atual || 0), 0)
   
   const totalEntradas = totalLocacoesAntigas + totalTransacoesEntrada
-
   const totalSaidas = transacoesFiltradas.filter(t => t.tipo === 'Saida').reduce((acc, t) => acc + Number(t.valor), 0)
   const saldoLiquido = totalEntradas - totalSaidas
 
-  const resumoSaidasPorCategoria = transacoesFiltradas
-    .filter(t => t.tipo === 'Saida')
-    .reduce((acc: any, t) => {
-      acc[t.categoria] = (acc[t.categoria] || 0) + Number(t.valor)
-      return acc
-    }, {})
+  const resumoSaidasPorCategoria = transacoesFiltradas.filter(t => t.tipo === 'Saida').reduce((acc: any, t) => {
+    acc[t.categoria] = (acc[t.categoria] || 0) + Number(t.valor)
+    return acc
+  }, {})
 
-  const resumoEntradasPorCategoria = transacoesFiltradas
-    .filter(t => t.tipo === 'Entrada')
-    .reduce((acc: any, t) => {
-      acc[t.categoria] = (acc[t.categoria] || 0) + Number(t.valor)
-      return acc
-    }, {})
+  const resumoEntradasPorCategoria = transacoesFiltradas.filter(t => t.tipo === 'Entrada').reduce((acc: any, t) => {
+    acc[t.categoria] = (acc[t.categoria] || 0) + Number(t.valor)
+    return acc
+  }, {})
 
   const isPagamentoDuplo = formaPagamento.includes('+')
   const partesFormaPag = formaPagamento.split(' + ')
 
-  // Aplicação dos Filtros Avançados
   const locacoesExibicao = locacoes.filter(l => {
     let passou = true
     if (filtroLocDataInicio && l.data_locacao < filtroLocDataInicio) passou = false
@@ -503,16 +497,12 @@ export default function Home() {
         equipamento: eq,
         locacoes: listaDaEq.map(loc => {
           const cli = clientes.find(c => String(c.id).trim() === String(loc.cliente_id).trim())
-          return {
-            ...loc,
-            clientes: cli || { nome_clinica: 'Clínica não encontrada', nome_contato: '', cidade: '' }
-          }
+          return { ...loc, clientes: cli || { nome_clinica: 'Clínica não encontrada', nome_contato: '', cidade: '' } }
         })
       }
     })
     .filter(grupo => grupo.locacoes.length > 0 || (!filtroLocCli && !filtroLocEq && !filtroLocDataInicio && !filtroLocDataFim))
 
-  // Filtro específico para a Agenda por Período (ordenado por data)
   const locacoesAgendaPeriodo = locacoes
     .filter(l => {
       if (!agendaDataInicio && !agendaDataFim) return true;
@@ -521,6 +511,111 @@ export default function Home() {
       return true;
     })
     .sort((a, b) => new Date(a.data_locacao).getTime() - new Date(b.data_locacao).getTime());
+    // --- RENDERIZAÇÃO DA ORDEM DE SERVIÇO EM TELA CHEIA PARA IMPRESSÃO ---
+  if (ordemServico) {
+    const eq = ordemServico.equipamento
+    const cli = ordemServico.cliente
+
+    return (
+      <div className="bg-white min-h-screen text-gray-900 font-sans p-8 print:p-0">
+        <div className="max-w-4xl mx-auto border border-gray-300 p-10 print:border-none print:p-0">
+          
+          <div className="flex justify-between items-start border-b-2 border-gray-800 pb-6 mb-8">
+            <div className="flex items-center gap-4">
+              <img src="/logo.jpg" alt="Logo Lumera" className="w-24 h-24 object-cover rounded-full border border-gray-200 shadow-sm" />
+              <div>
+                <h1 className="text-3xl font-black uppercase tracking-wider text-gray-900">Lumera Tech</h1>
+                <p className="text-base font-semibold text-gray-600">Locação de Equipamentos Estéticos</p>
+                <p className="text-sm text-gray-500 mt-1">Maringá - PR | CNPJ: XX.XXX.XXX/0001-XX</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-2xl font-black text-gray-300">ORDEM DE SERVIÇO</h2>
+              <p className="text-lg font-bold text-gray-800 mt-1">Nº {ordemServico.id}</p>
+              <p className="text-sm font-semibold mt-1">Data: {new Date(ordemServico.data_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="border border-gray-300 p-5 rounded-lg bg-gray-50/50">
+              <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Dados do Locatário (Clínica)</h3>
+              <p className="font-black text-xl text-gray-800 mb-1">{cli?.nome_clinica}</p>
+              <p className="text-sm mb-1"><span className="font-semibold">Contato:</span> {cli?.nome_contato}</p>
+              <p className="text-sm mb-1"><span className="font-semibold">Telefone:</span> {cli?.telefone}</p>
+              <p className="text-sm mb-1"><span className="font-semibold">Endereço:</span> {cli?.rua}, {cli?.numero} - {cli?.bairro}</p>
+              <p className="text-sm"><span className="font-semibold">Cidade:</span> {cli?.cidade} - CEP: {cli?.cep}</p>
+            </div>
+            <div className="border border-gray-300 p-5 rounded-lg bg-gray-50/50">
+              <h3 className="text-xs font-bold text-gray-500 uppercase mb-3 tracking-wider">Dados do Equipamento</h3>
+              <p className="font-black text-xl text-indigo-900 mb-1">{eq?.nome}</p>
+              <p className="text-sm mb-1"><span className="font-semibold">Marca/Modelo:</span> {eq?.marca}</p>
+              <p className="text-sm mb-3"><span className="font-semibold">Nº de Série:</span> {eq?.numero_serie}</p>
+              <div className="border-t border-gray-200 pt-3 mt-3">
+                <p className="text-sm"><span className="font-semibold">Período / Horas Locadas:</span></p>
+                <p className="text-base font-bold text-gray-800">{ordemServico.tempo_locacao || 'Período padrão'}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="border border-gray-300 p-5 rounded-lg mb-8 bg-gray-50/50">
+            <h3 className="text-xs font-bold text-gray-500 uppercase mb-4 tracking-wider">Detalhes Financeiros</h3>
+            <div className="grid grid-cols-3 gap-6">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Valor Total da Locação</p>
+                <p className="font-black text-2xl text-gray-900">{formatarMoeda(ordemServico.valor_atual)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Forma de Pagamento Acordada</p>
+                <p className="font-bold text-lg text-gray-800">{ordemServico.forma_pagamento}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Status no momento da OS</p>
+                <p className={`font-bold text-lg ${ordemServico.status_pagamento === 'Pago' ? 'text-green-600' : 'text-amber-600'}`}>
+                  {ordemServico.status_pagamento === 'Pago' ? 'PAGO' : 'PENDENTE'}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {ordemServico.observacao && (
+            <div className="border border-gray-300 p-5 rounded-lg mb-12">
+              <h3 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-wider">Observações / Acessórios Adicionais</h3>
+              <p className="text-sm text-gray-700 whitespace-pre-line">{ordemServico.observacao}</p>
+            </div>
+          )}
+
+          <div className="mt-20 pt-10">
+            <p className="text-xs text-justify text-gray-500 mb-16 leading-relaxed">
+              Declaro ter recebido o equipamento acima descrito em perfeitas condições de uso e funcionamento, com todos os seus acessórios e componentes. Comprometo-me a zelar pela integridade do mesmo durante todo o período de locação, responsabilizando-me por eventuais danos causados por mau uso ou negligência.
+            </p>
+            <div className="grid grid-cols-2 gap-16 text-center">
+              <div>
+                <div className="border-t border-gray-800 w-full mb-2"></div>
+                <p className="font-bold text-sm">LUMERA TECH</p>
+                <p className="text-xs text-gray-500 mt-1">Locador / Responsável Técnico</p>
+              </div>
+              <div>
+                <div className="border-t border-gray-800 w-full mb-2"></div>
+                <p className="font-bold text-sm uppercase">{cli?.nome_clinica}</p>
+                <p className="text-xs text-gray-500 mt-1">Locatário / Assinatura do Recebedor</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Botões de Ação - Escondidos na Impressão */}
+          <div className="no-print mt-12 flex justify-center gap-4 bg-gray-100 p-4 rounded-lg">
+            <button onClick={() => window.print()} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded font-bold shadow-md transition text-lg flex items-center gap-2">
+              🖨️ Imprimir Ordem de Serviço
+            </button>
+            <button onClick={() => setOrdemServico(null)} className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-8 py-3 rounded font-bold shadow-sm transition text-lg">
+              Voltar ao Sistema
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+  // --- FIM DA TELA DA ORDEM DE SERVIÇO ---
 
   return (
     <main className="min-h-screen p-8 bg-gray-50">
@@ -528,22 +623,12 @@ export default function Home() {
         
         <div className="no-print bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <img 
-              src="/logo.jpg" 
-              alt="Lumera Tech Logo" 
-              className="w-12 h-12 object-cover rounded-full shadow border border-gray-200" 
-            />
+            <img src="/logo.jpg" alt="Lumera Tech Logo" className="w-12 h-12 object-cover rounded-full shadow border border-gray-200" />
             <div>
               <h1 className="text-xl font-bold text-gray-800">LUMERA TECH - Estética</h1>
               <p className="text-gray-500 text-xs">Controle operacional de Equipamentos, Clientes, Locações e Financeiro</p>
             </div>
           </div>
-          <button 
-            onClick={() => window.print()} 
-            className="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow flex items-center gap-1.5 transition"
-          >
-            🖨️ Imprimir / Salvar PDF
-          </button>
         </div>
 
         <div className="no-print flex border-b border-gray-200 overflow-x-auto">
@@ -577,12 +662,7 @@ export default function Home() {
                 </form>
               </div>
               <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-700">Equipamentos Cadastrados</h2>
-                  <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
-                    🖨️ Imprimir Lista
-                  </button>
-                </div>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4">Equipamentos Cadastrados</h2>
                 {loadingEq ? <p>Carregando...</p> : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {equipamentos.map((eq) => (
@@ -619,12 +699,7 @@ export default function Home() {
                 </form>
               </div>
               <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-700">Relatório de Clientes / Clínicas Cadastradas</h2>
-                  <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
-                    🖨️ Imprimir Lista de Clientes
-                  </button>
-                </div>
+                <h2 className="text-xl font-semibold text-gray-700 mb-4">Relatório de Clientes / Clínicas Cadastradas</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {clientes.map((cli) => (
                     <div key={cli.id} className="border p-4 rounded-lg bg-gray-50 flex justify-between">
@@ -652,10 +727,7 @@ export default function Home() {
                     {editandoLocId ? `Editando Locação #${editandoLocId}` : 'Nova Locação / Agendamento'}
                   </h2>
                   {editandoLocId && (
-                    <button 
-                      onClick={limparFormularioLocacao}
-                      className="text-xs bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1 rounded font-bold hover:bg-rose-200"
-                    >
+                    <button onClick={limparFormularioLocacao} className="text-xs bg-rose-100 text-rose-700 border border-rose-200 px-3 py-1 rounded font-bold hover:bg-rose-200">
                       Cancelar Edição
                     </button>
                   )}
@@ -685,15 +757,8 @@ export default function Home() {
                     
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Tempo / Horas de Locação</label>
-                      <input 
-                        type="text" 
-                        placeholder="Ex: 8 horas, 50 disparos..." 
-                        value={tempoLocacao} 
-                        onChange={(e) => setTempoLocacao(e.target.value)} 
-                        className="w-full border rounded-md p-2 text-sm" 
-                      />
+                      <input type="text" placeholder="Ex: 8 horas, 50 disparos..." value={tempoLocacao} onChange={(e) => setTempoLocacao(e.target.value)} className="w-full border rounded-md p-2 text-sm" />
                     </div>
-
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Forma de Pagamento</label>
                       <select value={formaPagamento} onChange={(e) => setFormaPagamento(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white">
@@ -714,13 +779,7 @@ export default function Home() {
 
                     <div className="md:col-span-3">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Observação (Acessórios, horários ou detalhes operacionais)</label>
-                      <textarea 
-                        rows={2} 
-                        placeholder="Insira observações relevantes sobre esta locação..." 
-                        value={observacaoLoc} 
-                        onChange={(e) => setObservacaoLoc(e.target.value)} 
-                        className="w-full border rounded-md p-2 text-sm" 
-                      />
+                      <textarea rows={2} placeholder="Insira observações relevantes sobre esta locação..." value={observacaoLoc} onChange={(e) => setObservacaoLoc(e.target.value)} className="w-full border rounded-md p-2 text-sm" />
                     </div>
                   </div>
 
@@ -754,7 +813,6 @@ export default function Home() {
               </div>
 
               <div className="space-y-6">
-                
                 <div className="no-print bg-indigo-50 border border-indigo-200 rounded-lg p-4 flex flex-col md:flex-row gap-4 mb-4">
                   <div className="flex-1">
                     <label className="block text-xs font-semibold text-indigo-900 mb-1">Data Início</label>
@@ -789,9 +847,6 @@ export default function Home() {
 
                 <div className="flex justify-between items-center">
                   <h2 className="text-2xl font-bold text-gray-800">Relatório de Locações por Equipamento</h2>
-                  <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
-                    🖨️ Imprimir Relatório de Locações
-                  </button>
                 </div>
 
                 {loadingLoc ? <p>Carregando...</p> : locacoesPorEquipamento.map((grupo) => (
@@ -826,10 +881,7 @@ export default function Home() {
                                     ✅ Pago
                                   </span>
                                 ) : (
-                                  <button 
-                                    onClick={() => handleConfirmarPagamento(loc)}
-                                    className="no-print bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow-sm text-xs font-bold transition"
-                                  >
+                                  <button onClick={() => handleConfirmarPagamento(loc)} className="no-print bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded shadow-sm text-xs font-bold transition">
                                     💰 Confirmar Pagamento
                                   </button>
                                 )}
@@ -861,44 +913,21 @@ export default function Home() {
                               </div>
                             )}
 
-                            {loc.custo_total_operacional && loc.custo_total_operacional > 0 ? (
-                              <div className="bg-amber-50 border border-amber-200 p-3 rounded text-xs text-amber-900 space-y-1">
-                                <p className="font-bold flex items-center gap-1">
-                                  📊 Custo Operacional Viagem: {formatarMoeda(loc.custo_total_operacional)}
-                                </p>
-                                <p className="text-amber-800 mt-1">
-                                  {loc.km_rodados ? `${loc.km_rodados}km` : ''} 
-                                  {loc.tipo_combustivel ? ` (${loc.tipo_combustivel})` : ''} 
-                                  {loc.custo_combustivel ? ` | Combustível: ${formatarMoeda(loc.custo_combustivel)}` : ''}
-                                  {loc.valor_pedagio ? ` | Pedágio: ${formatarMoeda(loc.valor_pedagio)}` : ''}
-                                  {loc.valor_refeicao ? ` | Refeição: ${formatarMoeda(loc.valor_refeicao)}` : ''}
-                                  {loc.valor_hospedagem ? ` | Hospedagem: ${formatarMoeda(loc.valor_hospedagem)}` : ''}
-                                </p>
-                              </div>
-                            ) : null}
-
                             <div className="flex flex-wrap justify-between items-center pt-2 text-xs text-gray-600 border-t border-gray-100">
                               <div className="space-y-0.5">
-                                {loc.dias_entre_locacoes && (
-                                  <p className="flex items-center gap-1">⏱️ Dias entre as locações: <strong className="text-gray-800">{loc.dias_entre_locacoes} dias</strong></p>
-                                )}
                                 {loc.proxima_locacao && (
-                                  <p className="flex items-center gap-1">📅 Próxima Locação Agendada: <strong className="text-indigo-700">{new Date(loc.proxima_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></p>
+                                  <p className="flex items-center gap-1">📅 Próxima Agendada: <strong className="text-indigo-700">{new Date(loc.proxima_locacao + 'T00:00:00').toLocaleDateString('pt-BR')}</strong></p>
                                 )}
                               </div>
-                              
                               <div className="no-print flex gap-2">
-                                <button
-                                  onClick={() => handleEditarLocacao(loc)}
-                                  className="text-amber-700 border border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded font-semibold transition"
-                                >
+                                <button onClick={() => setOrdemServico({ ...loc, equipamento: grupo.equipamento, cliente: loc.clientes })} className="text-blue-700 border border-blue-300 hover:bg-blue-50 px-3 py-1.5 rounded font-semibold transition">
+                                  📑 Gerar OS
+                                </button>
+                                <button onClick={() => handleEditarLocacao(loc)} className="text-amber-700 border border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded font-semibold transition">
                                   Editar
                                 </button>
-                                <button
-                                  onClick={() => handleExcluirLocacao(loc.id)}
-                                  className="text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded font-semibold transition"
-                                >
-                                  Excluir Registro
+                                <button onClick={() => handleExcluirLocacao(loc.id)} className="text-red-600 border border-red-200 hover:bg-red-50 px-3 py-1.5 rounded font-semibold transition">
+                                  Excluir
                                 </button>
                               </div>
                             </div>
@@ -923,21 +952,11 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Data Início:</label>
-                      <input 
-                        type="date" 
-                        value={agendaDataInicio} 
-                        onChange={(e) => setAgendaDataInicio(e.target.value)} 
-                        className="border rounded-md p-2 text-sm bg-white" 
-                      />
+                      <input type="date" value={agendaDataInicio} onChange={(e) => setAgendaDataInicio(e.target.value)} className="border rounded-md p-2 text-sm bg-white" />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Data Fim:</label>
-                      <input 
-                        type="date" 
-                        value={agendaDataFim} 
-                        onChange={(e) => setAgendaDataFim(e.target.value)} 
-                        className="border rounded-md p-2 text-sm bg-white" 
-                      />
+                      <input type="date" value={agendaDataFim} onChange={(e) => setAgendaDataFim(e.target.value)} className="border rounded-md p-2 text-sm bg-white" />
                     </div>
                   </div>
                 </div>
@@ -971,16 +990,15 @@ export default function Home() {
                               {loc.tempo_locacao && (
                                 <p className="text-xs text-gray-600 ml-1">⏱️ Período/Horas: <strong>{loc.tempo_locacao}</strong></p>
                               )}
-                              {loc.observacao && (
-                                <p className="text-xs text-blue-800 ml-1 bg-blue-50 p-1.5 rounded border border-blue-100">📝 Obs: {loc.observacao}</p>
-                              )}
                             </div>
 
                             <div className="flex flex-col items-end gap-2">
                               <span className={`text-xs px-3 py-1.5 rounded-md font-semibold ${loc.status_pagamento === 'Pago' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-amber-100 text-amber-800 border border-amber-200'}`}>
                                 {loc.status_pagamento === 'Pago' ? '✅ Pago' : '⏳ Pagamento Pendente'}
                               </span>
-                              <span className="text-[10px] text-gray-400 font-medium">Agendamento #{loc.id}</span>
+                              <button onClick={() => setOrdemServico({ ...loc, equipamento: eq, cliente: cli })} className="no-print mt-1 text-blue-700 border border-blue-300 hover:bg-blue-50 px-3 py-1 rounded font-semibold transition text-xs">
+                                📑 Gerar OS
+                              </button>
                             </div>
                           </div>
                         )
@@ -1015,13 +1033,6 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-gray-800">Relatório Consolidado do Financeiro</h2>
-                <button onClick={() => window.print()} className="no-print bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100">
-                  🖨️ Imprimir Relatório Financeiro Completo
-                </button>
-              </div>
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-green-50 border border-green-200 p-5 rounded-lg shadow-sm">
                   <p className="text-xs font-semibold text-green-700 uppercase">Total Entradas (Receitas)</p>
@@ -1040,34 +1051,26 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
                   <h3 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📈 Relatório de Saídas por Categoria</h3>
-                  {Object.keys(resumoSaidasPorCategoria).length === 0 ? (
-                    <p className="text-xs text-gray-500 italic">Nenhuma saída registrada no período.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {Object.entries(resumoSaidasPorCategoria).map(([cat, val]: [string, any]) => (
-                        <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
-                          <span className="text-gray-700 font-medium">{cat}</span>
-                          <strong className="text-red-600">{formatarMoeda(val)}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    {Object.entries(resumoSaidasPorCategoria).map(([cat, val]: [string, any]) => (
+                      <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
+                        <span className="text-gray-700 font-medium">{cat}</span>
+                        <strong className="text-red-600">{formatarMoeda(val)}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="bg-white shadow rounded-lg p-6 border border-gray-100">
                   <h3 className="text-lg font-bold text-gray-800 mb-3 border-b pb-2">📊 Relatório de Entradas por Categoria</h3>
-                  {Object.keys(resumoEntradasPorCategoria).length === 0 ? (
-                    <p className="text-xs text-gray-500 italic">Nenhuma entrada manual registrada no período.</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {Object.entries(resumoEntradasPorCategoria).map(([cat, val]: [string, any]) => (
-                        <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
-                          <span className="text-gray-700 font-medium">{cat}</span>
-                          <strong className="text-green-600">{formatarMoeda(val)}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    {Object.entries(resumoEntradasPorCategoria).map(([cat, val]: [string, any]) => (
+                      <div key={cat} className="flex justify-between items-center text-sm border-b border-gray-50 py-1.5">
+                        <span className="text-gray-700 font-medium">{cat}</span>
+                        <strong className="text-green-600">{formatarMoeda(val)}</strong>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1088,14 +1091,10 @@ export default function Home() {
                         <option value="Outros">Outros</option>
                         <option value="Manutenção">Manutenção de Equipamento</option>
                         <option value="Custo Viagem / Operacional">Custo Viagem / Operacional</option>
-                        <option value="Marketing">Marketing</option>
                         <option value="Combustível">Combustível</option>
                         <option value="Alimentação">Alimentação</option>
-                        <option value="Retirada Pró-Labore">Retirada Pró-Labore</option>
                         <option value="Retirada Pró-Labore Osvino">Retirada Pró-Labore Osvino</option>
                         <option value="Aluguel">Aluguel</option>
-                        <option value="Prestação Equipamento">Prestação Equipamento</option>
-                        <option value="Fundo de Reserva">Fundo de Reserva</option>
                       </select>
                     </div>
                     <div>
@@ -1111,7 +1110,6 @@ export default function Home() {
                       <input type="number" step="0.01" placeholder="Ex: 150.00" value={valorFin} onChange={(e) => setValorFin(e.target.value)} className="w-full border rounded-md p-2 text-sm bg-white" />
                     </div>
                   </div>
-
                   <button type="submit" disabled={salvandoFin} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-md text-sm">Adicionar Lançamento Manual</button>
                 </form>
               </div>
@@ -1135,19 +1133,11 @@ export default function Home() {
                         {transacoesFiltradas.map((t) => (
                           <tr key={t.id} className="border-b hover:bg-gray-50">
                             <td className="p-3">{new Date(t.data_transacao + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
-                            <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-xs font-semibold ${t.tipo === 'Entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                {t.tipo}
-                              </span>
-                            </td>
+                            <td className="p-3"><span className={`px-2 py-0.5 rounded text-xs font-semibold ${t.tipo === 'Entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{t.tipo}</span></td>
                             <td className="p-3">{t.categoria}</td>
                             <td className="p-3 font-medium text-gray-800">{t.descricao}</td>
-                            <td className={`p-3 font-bold ${t.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}`}>
-                              {t.tipo === 'Entrada' ? '+' : '-'} {formatarMoeda(t.valor)}
-                            </td>
-                            <td className="no-print p-3 text-right">
-                              <button onClick={() => handleExcluirTransacao(t.id)} className="text-xs text-red-600 border border-red-200 px-2 py-1 rounded">Excluir</button>
-                            </td>
+                            <td className={`p-3 font-bold ${t.tipo === 'Entrada' ? 'text-green-600' : 'text-red-600'}`}>{t.tipo === 'Entrada' ? '+' : '-'} {formatarMoeda(t.valor)}</td>
+                            <td className="no-print p-3 text-right"><button onClick={() => handleExcluirTransacao(t.id)} className="text-xs text-red-600 border border-red-200 px-2 py-1 rounded">Excluir</button></td>
                           </tr>
                         ))}
                       </tbody>
